@@ -1,0 +1,757 @@
+---
+title: "Figures"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r warning=FALSE}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(xtable)
+  library(forcats)
+  library(patchwork)
+  library(latex2exp)
+  library(arrow)
+  library(jsonlite)
+  library(pROC)
+})
+theme_set(theme_minimal())
+
+save_latex = function(df, file, digits=1) {
+  df |> 
+    xtable(digits = digits) |>
+    print.xtable(file=file, 
+      booktabs=TRUE, 
+      include.rownames = FALSE, 
+      sanitize.text.function = identity, 
+      floating=FALSE
+    )
+}
+
+lookup_latex = c(
+    `\\#` = "name",
+    `$p$` = "p",
+    `$\\sigma^2$` = "sigma_sq",
+    `$\\sigma_0^2$` = "sigma0_sq",
+    `$\\hat{\\mathcal{V}} - \\mathcal{V}$` = "V_hat - V median", 
+    `$\\hat{\\mathcal{V}} - \\mathcal{V}$` = "V_hat - V", 
+    `$\\sigma_0^2 - \\mathcal{V}$` = "sigma0_sq - V", 
+    `$\\mathcal{V}_{\\frac{1}{2}} - \\mathcal{V}$` = "V_n2 - V", 
+    `$q_{5\\%}$(v)` = "V_hat - V q5", 
+    `$\\hat{\\mathcal{B}} - \\mathcal{B}$` = "B_hat - B_abs median", 
+    `$\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:exactbiasbound}} - \\mathcal{B}_{\\mathrm{GP}}$` = "B_hat - B_abs median gp_rbf", 
+    `$\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:exactbiasbound}} - \\mathcal{B}_{\\mathrm{SVM}}$` = "B_hat - B_abs median svm", 
+    `$\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:exactbiasbound}} - \\mathcal{B}_{\\mathrm{RF}}$` = "B_hat - B_abs median rf", 
+    `$\\hat{\\mathcal{B}} - \\mathcal{B}$` = "B_hat - B_abs", 
+    `$\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:approxbiasbound}} - \\mathcal{B}$` = "B_hat_approx - B_abs", 
+    `$\\hat{\\mathcal{B}}_{\\mathrm{Eq.}~\\eqref{eq:bias_alt}} - \\mathcal{B}$` = "B_hat_Vhat - B_abs", 
+    `$q_{5\\%}(b)$` = "B_hat - B_abs q5", 
+    `$\\hat f$` = "estimator",
+    `$\\hat f$` = "regressor",
+    `$f$` = "f_true",
+    `$\\mathbf{\\hat{C}}$` = "C_hat",
+    `$\\frac{\\hat{\\mathcal{V}} - \\mathcal{V}}{\\mathrm{median}(\\mathcal{V})}$` = "(V_hat - V) / median(V)",
+    `$\\frac{\\mathcal{V}_{1/2} - \\mathcal{V}}{\\mathrm{median}(\\mathcal{V})}$` = "(V_n2 - V) / median(V)",
+    `$\\frac{\\sigma_0^2 - \\mathcal{V}}{\\mathrm{median}(\\mathcal{V})}$` = "(sigma0_sq - V) / median(V)",
+    `$\\frac{\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:exactbiasbound}} - \\mathcal{B}}{\\mathrm{median}(\\mathcal{B})}$` = "(B_hat - B_abs) / median(B_abs)",
+    `$\\frac{\\hat{\\mathcal{B}}_{\\mathrm{Thm.}~\\ref{theo:approxbiasbound}} - \\mathcal{B}}{\\mathrm{median}(\\mathcal{B})}$` = "(B_hat_approx - B_abs) / median(B_abs)",
+    `$\\frac{\\hat{\\mathcal{B}}_{\\mathrm{Eq.}~\\eqref{eq:bias_alt}} - \\mathcal{B}}{\\mathrm{median}(\\mathcal{B})}$` = "(B_hat_Vhat - B_abs) / median(B_abs)"
+  )
+
+rename_latex = function(df, lookup=lookup_latex) {
+  df |>
+    rename(any_of(lookup))
+}
+
+load_config = function(path_to_config) {
+  is_abs_path = function(x) {
+    grepl("^~", x) | grepl("^/", x) | grepl("^[A-Z]:", x)
+  }
+  config = fromJSON(path_to_config)
+  path = dirname(normalizePath(path_to_config))
+  for (k in c("dir_data", "dir_results", "dir_figures", "dir_tables")) {
+    if (!is_abs_path(config[[k]])) {
+      config[[k]] = file.path(path, config[[k]])
+    }
+  }
+  config
+}
+
+
+
+
+
+
+
+config = load_config("../config.json")
+dir_figures = config[["dir_figures"]]
+dir_tables = config[["dir_tables"]]
+dir_results = config[["dir_results"]]
+save = TRUE
+
+if (!dir.exists(dir_figures)) {
+  dir.create(dir_figures, recursive = TRUE)
+}
+if (!dir.exists(dir_tables)) {
+  dir.create(dir_tables, recursive = TRUE)
+}
+```
+
+
+# Bound evaluation with synthetic data
+
+```{r}
+read_bound = function(path_to_tbl_bound) {
+  arrow::read_feather(path_to_tbl_bound) |> 
+  as_tibble() |>
+  arrange(name) |>
+    mutate(
+      name = forcats::fct_reorder(name, -row_number()), 
+      case = gsub("\\d+$", "", name),
+      `(V_hat - V median) / median(V)` = `V_hat - V median` / `V median`,
+      `(V_hat - V q5) / median(V)` = `V_hat - V q5` / `V median`,
+      `(V_hat - V q95) / median(V)` = `V_hat - V q95` / `V median`,
+      `(V_n2 - V median) / median(V)` = `V_n2 - V median` / `V median`,
+      `(V_n2 - V q5) / median(V)` = `V_n2 - V q5` / `V median`,
+      `(V_n2 - V q95) / median(V)` = `V_n2 - V q95` / `V median`,
+      `(sigma0_sq - V median) / median(V)` = `sigma0_sq - V median` / `V median`,
+      `(sigma0_sq - V q5) / median(V)` = `sigma0_sq - V q5` / `V median`,
+      `(sigma0_sq - V q95) / median(V)` = `sigma0_sq - V q95` / `V median`,
+      `(B_hat - B_abs median) / median(B_abs)` = `B_hat - B_abs median` / `B_abs median`,
+      `(B_hat - B_abs q5) / median(B_abs)` = `B_hat - B_abs q5` / `B_abs median`,
+      `(B_hat - B_abs q95) / median(B_abs)` = `B_hat - B_abs q95` / `B_abs median`,
+      `(B_hat_approx - B_abs median) / median(B_abs)` = `B_hat_approx - B_abs median` / `B_abs median`,
+      `(B_hat_approx - B_abs q5) / median(B_abs)` = `B_hat_approx - B_abs q5` / `B_abs median`,
+      `(B_hat_approx - B_abs q95) / median(B_abs)` = `B_hat_approx - B_abs q95` / `B_abs median`,
+      `(B_hat_Vhat - B_abs median) / median(B_abs)` = `B_hat_Vhat - B_abs median` / `B_abs median`,
+      `(B_hat_Vhat - B_abs q5) / median(B_abs)` = `B_hat_Vhat - B_abs q5` / `B_abs median`,
+      `(B_hat_Vhat - B_abs q95) / median(B_abs)` = `B_hat_Vhat - B_abs q95` / `B_abs median`,
+      kernel_caps = factor(kernel, levels=c("rbf", "rq", "matern"), labels=c("RBF", "RQ", "Matern"))
+      )
+}
+
+
+plot_bound_exp_long <- function(df_long) {
+  colors_bounds <- c(
+    "V_hat - V" = "black",
+    "V_n2 - V" = "blue",
+    "sigma0_sq - V" = "darkred",
+    "B_hat - B_abs" = "black",
+    "B_hat_Vhat - B_abs" = "darkgreen",
+    "B_hat_approx - B_abs" = "purple",
+    
+    "(V_hat - V) / median(V)" = "black",
+    "(V_n2 - V) / median(V)" = "blue",
+    "(sigma0_sq - V) / median(V)" = "darkred",
+    "(B_hat - B_abs) / median(B_abs)" = "black",
+    "(B_hat_Vhat - B_abs) / median(B_abs)" = "darkgreen",
+    "(B_hat_approx - B_abs) / median(B_abs)" = "purple"
+  )
+  
+  labels_bounds <- c(
+    "V_hat - V" = "$\\hat{V} - V$",
+    "V_n2 - V" = "$V_{1/2} - V$",
+    "sigma0_sq - V" = "$\\sigma_0^2 - V$",
+    "B_hat - B_abs" = "$\\hat{B}_{Thm. 5} - B$",
+    "B_hat_Vhat - B_abs" = "$\\hat{B}_{\\hat{V}} - B$",
+    "B_hat_approx - B_abs" = "$\\hat{B}_{Thm. 6} - B$",
+    
+    "(V_hat - V) / median(V)" = "$\\frac{\\hat{V} - V}{median(V)}$",
+    "(V_n2 - V) / median(V)" = "$\\frac{V_{1/2} - V}{median(V)}$",
+    "(sigma0_sq - V) / median(V)" = "$\\frac{\\sigma_0^2 - V}{median(V)}$",
+      "(B_hat - B_abs) / median(B_abs)" = "$\\frac{\\hat{B}_{Thm. 5} - B}{median(B)}$",
+    "(B_hat_Vhat - B_abs) / median(B_abs)" = "$\\frac{\\hat{B}_{\\hat{V}} - B}{median(B)}$",
+    "(B_hat_approx - B_abs) / median(B_abs)" = "$\\frac{\\hat{B}_{Thm. 6} - B}{median(B)}$"
+  )
+  
+  shapes_bounds <- c(
+    "V_hat - V" = 19,
+    "V_n2 - V" = 21,
+    "sigma0_sq - V" = 3,
+    "B_hat - B_abs" = 19,
+    "B_hat_Vhat - B_abs" = 4,
+    "B_hat_approx - B_abs" = 1,
+    
+    "(V_hat - V) / median(V)" = 19,
+    "(V_n2 - V) / median(V)" = 21,
+    "(sigma0_sq - V) / median(V)" = 3,
+    "(B_hat - B_abs) / median(B_abs)" = 19,
+    "(B_hat_Vhat - B_abs) / median(B_abs)" = 4,
+    "(B_hat_approx - B_abs) / median(B_abs)" = 1
+  )
+  
+  ggplot(df_long) +
+    geom_point(aes(median, name, col = bound, shape = bound), size = 1, position = position_dodge(0.3)) +
+    geom_errorbarh(aes(y = name, xmin = q5, xmax = q95, col = bound), linewidth = 0.1, height = 0.1, position = position_dodge(0.3)) +
+    geom_vline(aes(xintercept = 0), lty = 2, linewidth = 0.1) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom", plot.title = element_text(hjust = 0.5)) +
+    scale_color_manual(values = colors_bounds, labels = TeX(labels_bounds), name = "") +
+    scale_shape_manual(values = shapes_bounds, labels = TeX(labels_bounds), name = "") +
+    labs(x = "", y = "")
+}
+
+bound = read_bound(file.path(dir_results, "bound", "tbl_bound.feather"))
+```
+
+
+## Tables
+
+```{r}
+tbl_bound_var = bound |>
+  filter(D == 2, C_hat == C, sigma_sq == 0.1, estimator == "gp_rbf") |>
+  mutate(
+    `(V_hat - V) / median(V)` = sprintf(
+      "%.2f (%.2f)",
+      `V_hat - V median` / `V median`,
+      `V_hat - V q5` / `V median`
+    ),
+    `(sigma0_sq - V) / median(V)` = sprintf(
+      "%.2f (%.2f)",
+      `sigma0_sq - V median` / `V median`,
+      `sigma0_sq - V q5` / `V median`
+    ),
+    `(V_n2 - V) / median(V)` = sprintf("%.2f (%.3f)", `V_n2 - V median` / `V median`, `V_n2 - V q5` / `V median`)
+  ) |>
+  select(Kernel=kernel_caps,
+         `(V_hat - V) / median(V)`,
+         `(sigma0_sq - V) / median(V)`,
+         `(V_n2 - V) / median(V)`)
+
+tbl_bound_bias = bound |>
+    filter(D == 2, C_hat == C, sigma_sq == 0.1, estimator=="rf") |>
+  mutate(
+    `(B_hat - B_abs) / median(B_abs)`  = sprintf(
+      "%.2f (%.2f)",
+      `B_hat - B_abs median` / `B_abs median`,
+      `B_hat - B_abs q5` / `B_abs median`
+    ),
+    `(B_hat_approx - B_abs) / median(B_abs)`  = sprintf(
+      "%.2f (%.2f)",
+      `B_hat_approx - B_abs median` / `B_abs median`,
+      `B_hat_approx - B_abs q5` / `B_abs median`
+    ),
+    `(B_hat_Vhat - B_abs) / median(B_abs)`  = sprintf(
+      "%.2f (%.2f)",
+      `B_hat_Vhat - B_abs median` / `B_abs median`,
+      `B_hat_Vhat - B_abs q5` / `B_abs median`
+    )
+  ) |>
+  select(
+    Kernel=kernel_caps,
+    `(B_hat - B_abs) / median(B_abs)`,
+    `(B_hat_approx - B_abs) / median(B_abs)`,
+    `(B_hat_Vhat - B_abs) / median(B_abs)`
+  )
+
+if (save) {
+  tbl_bound_var |>
+    rename_latex() |>
+    save_latex(file.path(dir_tables, "tbl_bound_var.tex"), digits = 2)
+    
+  tbl_bound_bias |>
+    rename_latex() |>
+    save_latex(file.path(dir_tables, "tbl_bound_bias.tex"), digits = 2)
+}
+```
+
+## Figures (Appendix)
+
+```{r}
+appendix_bound_vars = c(
+  "V_hat - V",
+  "V_n2 - V",
+  "sigma0_sq - V",
+  "B_hat - B_abs",
+  "B_hat_Vhat - B_abs",
+  "B_hat_approx - B_abs"
+)
+appendix_bound_vars = c(
+  paste(appendix_bound_vars, "median"),
+  paste(appendix_bound_vars, "q5"),
+  paste(appendix_bound_vars, "q95")
+)
+appendix_bound_vars_relative = ifelse(
+  grepl(" V ", appendix_bound_vars),
+  sprintf("(%s) / median(V)", appendix_bound_vars),
+  sprintf("(%s) / median(B_abs)", appendix_bound_vars))
+
+bound_ = bound |> 
+  filter(C == C_hat) |> 
+  mutate(kernel = kernel_caps) |> 
+  arrange(estimator, D, sigma_sq, kernel) |> 
+  group_by(estimator) |> 
+  mutate(name = fct_reorder(factor(row_number()), -row_number())) |> 
+  ungroup()
+
+bound_long = bound_ |> 
+  pivot_longer(all_of(appendix_bound_vars), names_to = "bound") |>
+  select(name, D, sigma_sq, kernel, estimator, bound, value) |> 
+  mutate(
+    stat = case_when(
+      grepl("(median\\)|median$)", bound) ~ "median",
+      grepl("q5", bound) ~ "q5",
+      grepl("q95", bound) ~ "q95"
+  ), 
+    bound = gsub(" (median|q5|q95)\\)", "\\)", bound),
+    bound = gsub(" (median|q5|q95)$", "", bound)
+  ) |>
+  pivot_wider(
+    id_cols = c(name, D, sigma_sq, kernel, estimator, bound),
+              names_from = stat, 
+    values_from = value
+  ) |>
+  mutate(
+    is_bias = grepl("B_hat", bound),
+    bound_label = names(lookup_latex)[match(bound, lookup_latex)]
+  )
+
+fig_var = bound_long |> 
+  filter(!is_bias, estimator == "gp_rbf") |> 
+  plot_bound_exp_long()+ 
+  labs(title="Variance bound for GP")
+
+fig_bias_gp_rbf = bound_long |> 
+  filter(is_bias, estimator == "gp_rbf") |> 
+  plot_bound_exp_long() + 
+  scale_x_continuous(trans="pseudo_log", breaks = c(0, 1, 10, 100)) + 
+  coord_cartesian(xlim=c(-1, 100)) + 
+  theme(axis.text.y = element_blank()) + 
+  labs(title="Bias bound for GP")
+
+fig_bias_rf = bound_long |> 
+  filter(is_bias, estimator == "rf") |> 
+  plot_bound_exp_long() + 
+  scale_x_continuous(trans="pseudo_log", breaks = c(0, 1, 10, 100)) + 
+  coord_cartesian(xlim=c(-1, 100)) + 
+  theme(axis.text.y = element_blank()) + 
+  labs(title="Bias bound for RF")
+
+fig_bias_svm = bound_long |> 
+  filter(is_bias, estimator == "svm") |> 
+  plot_bound_exp_long() + 
+  scale_x_continuous(trans="pseudo_log", breaks = c(0, 1, 10, 100)) + 
+  coord_cartesian(xlim=c(-1, 100)) + 
+  theme(axis.text.y = element_blank()) + 
+  labs(title="Bias bound for SVM")
+
+fig_var
+fig_bias_gp_rbf
+fig_bias_rf
+fig_bias_svm
+
+if (save) {
+  ggsave("bound_var.pdf", fig_var, path=dir_figures, width = 3, height=10)
+  ggsave("bound_bias_gp_rbf.pdf", fig_bias_gp_rbf, path=dir_figures, width = 3, height=10)
+  ggsave("bound_bias_rf.pdf", fig_bias_rf, path=dir_figures, width = 3, height=10)
+  ggsave("bound_bias_svm.pdf", fig_bias_svm, path=dir_figures, width = 3, height=10)
+}
+```
+
+## Table (Appendix)
+
+```{r}
+tbl_bound_all = bound_ |>
+    mutate(
+      p = as.integer(D)
+    ) |> 
+  pivot_wider(
+    id_cols = c(p, kernel, sigma_sq),
+    names_from = "estimator",
+    values_from = all_of(appendix_bound_vars),
+    names_sep = " "
+  ) |>
+  mutate(
+    `V_hat - V median` = sprintf("%.1f (%.1f)", `V_hat - V median gp_rbf`, `V_hat - V q5 gp_rbf`),
+    `B_hat - B_abs median gp_rbf` = sprintf("%.1f (%.1f)", `B_hat - B_abs median gp_rbf`, `B_hat - B_abs q5 gp_rbf`), 
+    `B_hat - B_abs median rf` = sprintf("%.1f (%.1f)", `B_hat - B_abs median rf`, `B_hat - B_abs q5 rf`), 
+    `B_hat - B_abs median svm` = sprintf("%.1f (%.1f)", `B_hat - B_abs median svm`, `B_hat - B_abs q5 svm`)
+  ) |>
+  mutate(name = row_number()) |> 
+  select(name,
+         p,
+         Kernel = kernel,
+         sigma_sq,
+         `V_hat - V median`,
+         `B_hat - B_abs median gp_rbf`,
+         `B_hat - B_abs median rf`,
+         `B_hat - B_abs median svm`
+  )
+
+if (save) {
+   tbl_bound_all |>
+    mutate(
+      name = gsub("_", "\\_", name, fixed = TRUE),
+      name = paste0("\\textsc{", name, "}")
+    ) |> 
+    rename_latex() |>
+    save_latex(file.path(dir_tables, "tbl_bound_all.tex"))
+}
+```
+
+
+# Scaling
+
+```{r}
+scaling = read_feather(file.path(dir_results, "scaling", "tbl_scaling.feather")) |> 
+  as_tibble() 
+```
+
+## Figure
+
+```{r fig.width=10, fig.height=3}
+plot_scaling = function(df) {
+  palette_kernels = c(
+    "bound" = "black",
+    "rbf" = "#377eb8",
+    "rq" = "#7fc97f",
+    "matern" = "#e41a1c"
+  )
+  labels_kernels = c(
+    "bound" = "Bound",
+    "rbf" = "RBF",
+    "rq" = "RQ",
+    "matern" = "Matern"
+  )
+  linetypes_kernels = c(
+    "bound" = "solid",
+    "rbf" = "dashed",
+    "rq" = "longdash",
+    "matern" = "dotted"
+  )
+  N_breaks = c(100, 2500, 5000, 7500, 10000)
+  D_breaks = c(1, 5, 15, 25)
+  ylim = range(0, df$time_q95)
+
+  fig_scaling_n = df |> 
+    filter(D == 25) |>
+    ggplot() + 
+    geom_line(aes(N, time_mean, color=method, group=method, linetype=method), alpha=0.7) + 
+    geom_errorbar(aes(N, ymin=time_q5, ymax=time_q95, color=method), width=0, linewidth=0.3, position=position_dodge(width=75), alpha=0.7, show.legend = FALSE) + 
+    scale_color_manual(values=palette_kernels, labels=labels_kernels, name="") + 
+    scale_linetype_manual(values=linetypes_kernels, labels=labels_kernels, name="") + 
+    scale_x_continuous(breaks = N_breaks) +
+    scale_y_continuous(labels=scales::label_number(), limits=ylim) +
+    theme(
+      panel.grid = element_blank(),
+      axis.ticks = element_line(),
+      axis.line = element_line(),
+    ) + 
+    labs(x = "Data size (N)", y = "Time (s)")
+  fig_scaling_n
+
+  fig_scaling_d = df |> 
+      filter(N == 10000) |>
+      ggplot() + 
+      geom_line(aes(D, time_mean, color=method, group=method, linetype=method), alpha=0.7) + 
+      geom_errorbar(aes(D, ymin=time_q5, ymax=time_q95, color=method), width=0, linewidth=0.3, position=position_dodge(width=0.3), alpha=0.7, show.legend = FALSE) + 
+      scale_color_manual(values=palette_kernels, labels=labels_kernels, name="") + 
+      scale_linetype_manual(values=linetypes_kernels, labels=labels_kernels, name="") + 
+      scale_x_continuous(breaks = D_breaks) +
+      scale_y_continuous(labels=scales::label_number(), limits=ylim) +
+    theme(
+      panel.grid = element_blank(),
+      axis.ticks = element_line(),
+      axis.line = element_line(),
+    ) + 
+      labs(x = "Data dimension (D)", y = "Time (s)")
+  fig_scaling_d
+
+  fig_scaling = fig_scaling_n + 
+    fig_scaling_d + 
+    plot_layout(guides = "collect") + 
+    plot_annotation(tag_levels = "A")
+  fig_scaling
+}
+
+fig_scaling = plot_scaling(scaling)
+fig_scaling
+
+if (save) {
+  ggsave("fig_scaling.pdf", fig_scaling, path=dir_figures, width=6, height=2)
+}
+```
+
+## Table (Appendix)
+
+```{r}
+tbl_scaling = scaling |> 
+    mutate(time = sprintf("%.2g $\\pm$ %.2g", time_mean, time_std)) |> 
+    pivot_wider(id_cols=c(N, D), names_from="method", values_from="time") |> 
+    rename(Bound = bound, Matern = matern, RBF = rbf, RQ = rq)
+tbl_scaling
+
+if (save) {
+  tbl_scaling |> 
+    rename_latex() |>
+    save_latex(file.path(dir_tables, "scaling.tex"))
+}
+```
+
+
+# Bound evaluation with real data
+
+```{r}
+read_drift <- function(path_to_tbl_drift) {
+  subset_ <- \(x, i) x[i]
+  q_thr_e = 0.8 # error threshold for drift = quantile of validation error.
+  read_feather(path_to_tbl_drift) |>
+    as_tibble() |>
+    arrange(dataset, regressor) |>
+    mutate(
+      bound_exact = map2(V_hat, B_hat, \(v, b) v + b^2),
+      bound_practical = map2(V_hat, B_hat_practical, \(v, b) v + b^2),
+      bound_approx = map2(V_hat, B_hat_approx, \(v, b) v + b^2),
+      thr_e = map2_dbl(sq_error, is_va, \(e, i) quantile(e[i], q_thr_e)),
+      has_drift = map2(sq_error, thr_e, \(e, t) e >= t),
+      is_not_tr = map(is_tr, \(i) !i), # contains va and te
+      is_trvate = map2(is_tr, is_va, \(i_t, i_v) ifelse(i_t, "tr", ifelse(i_v, "va", "te"))),
+      bound_exact_te = map2(bound_exact, is_not_tr, subset_),
+      bound_practical_te = map2(bound_practical, is_not_tr, subset_),
+      bound_approx_te = map2(bound_approx, is_not_tr, subset_),
+      has_drift_te = map2(has_drift, is_not_tr, subset_),
+      dist_te = map2(dist, is_not_tr, subset_)
+    ) |>
+    mutate(
+      auc_exact = pmap_dbl(list(target = has_drift, predictor = bound_exact), AUC),
+      auc_approx = pmap_dbl(list(target = has_drift, predictor = bound_approx), AUC),
+      auc_practical = pmap_dbl(list(target = has_drift, predictor = bound_practical), AUC),
+      auc_dist = pmap_dbl(list(target = has_drift, predictor = dist), AUC),
+      auc_exact_te = pmap_dbl(list(target = has_drift_te, predictor = bound_exact_te), AUC),
+      auc_approx_te = pmap_dbl(list(target = has_drift_te, predictor = bound_approx_te), AUC),
+      auc_practical_te = pmap_dbl(list(target = has_drift_te, predictor = bound_practical_te), AUC),
+      auc_dist_te = pmap_dbl(list(target = has_drift_te, predictor = dist_te), AUC)
+    )
+}
+
+read_bound_real <- function(path_to_tbl) {
+  read_feather(path_to_tbl) |>
+    as_tibble() |>
+    rename(
+      median_exact = `bound_exact - sq_error median`,
+      q_low_exact = `bound_exact - sq_error q_low`,
+      q_high_exact = `bound_exact - sq_error q_high`,
+      median_approx = `bound_approx - sq_error median`,
+      q_low_approx = `bound_approx - sq_error q_low`,
+      q_high_approx = `bound_approx - sq_error q_high`,
+      median_pract = `bound_pract - sq_error median`,
+      q_low_pract = `bound_pract - sq_error q_low`,
+      q_high_pract = `bound_pract - sq_error q_high`
+    ) |>
+    mutate(
+      median_exact_rel_med = median_exact / `sq_error median`,
+      q_low_exact_rel_med = q_low_exact / `sq_error median`,
+      q_high_exact_rel_med = q_high_exact / `sq_error median`,
+      median_approx_rel_med = median_approx / `sq_error median`,
+      q_low_approx_rel_med = q_low_approx / `sq_error median`,
+      q_high_approx_rel_med = q_high_approx / `sq_error median`,
+      median_pract_rel_med = median_pract / `sq_error median`,
+      q_low_pract_rel_med = q_low_pract / `sq_error median`,
+      q_high_pract_rel_med = q_high_pract / `sq_error median`
+    ) |>
+    arrange(dataset, regressor) |>
+    mutate(
+      dataset_regressor = paste(dataset, regressor, sep = " - "),
+      dataset_regressor = forcats::fct_inorder(dataset_regressor, ordered = TRUE)
+    )
+}
+
+AUC = function(predictor, target) {
+  auc(response = target,
+      predictor = predictor,
+      quiet = TRUE) |> 
+    as.numeric()
+}
+
+plot_scatter_real = function(df, x_var="sq_error", y_var="bound", color_var=NULL, title="", x_label=TeX(r"( $(y - \hat{f}(x))^2$ )"), y_label="Bound") {
+  g1 = geom_point(aes(get(x_var), get(y_var)), size=0.1, alpha=0.3) 
+  g2 = geom_point(aes(get(x_var), get(y_var), color=get(color_var), shape=get(color_var)), size=2.5, alpha=0.4) 
+  g_point = if (is.null(color_var)) g1 else g2
+  
+  fig = ggplot(df) + 
+    g_point + 
+    geom_abline(slope=1, intercept=0, lty=2, col="darkgrey") + 
+    labs(x = x_label, y=y_label, title=title) + 
+    theme(
+      panel.grid = element_blank(),
+      axis.line = element_line(),
+      plot.title = element_text(hjust = 0.5),
+      axis.ticks = element_line(), 
+      legend.position = "none"
+    ) + 
+    scale_x_log10(labels=scales::label_log()) + 
+    scale_y_log10(labels=scales::label_number()) 
+  
+  fig
+}
+
+
+plot_bound_real <- function(df, x_var = "median", x_low_var = "q_low", x_high_var = "q_high") {
+  df |>
+    ggplot() +
+    geom_point(aes(get(x_var), dataset_regressor), size = 1) +
+    geom_errorbarh(aes(y = dataset_regressor, xmin = get(x_low_var), xmax = get(x_high_var)), linewidth = 0.1) +
+    geom_vline(aes(xintercept = 0), lty = 2, linewidth = 0.1) +
+    theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(), axis.text.y = element_text(hjust = 0)) +
+    labs(y = "", x = "U - e")
+}
+
+drift = read_drift(file.path(dir_results, "drift", "tbl_drift.feather"))
+bound_real = read_bound_real(file.path(dir_results, "bound_real", "tbl_bound_real.feather"))
+```
+
+## Figure (bound)
+
+```{r}
+fig_bound_real_pract = bound_real |> 
+  mutate(dataset_regressor = fct_rev(dataset_regressor)) |> 
+  plot_bound_real(x_var="median_pract_rel_med", x_low_var="q_low_pract_rel_med", x_high_var="q_high_pract_rel_med") + 
+  xlab("(U - e) / median(e)") + 
+  scale_x_continuous(trans="pseudo_log", breaks=c(0, 1, 10, 100, 1000))
+
+fig_bound_real_exact = bound_real |> 
+  mutate(dataset_regressor = fct_rev(dataset_regressor)) |> 
+  plot_bound_real(x_var="median_exact_rel_med", x_low_var="q_low_exact_rel_med", x_high_var="q_high_exact_rel_med") + 
+  xlab("(U - e) / median(e)") + 
+  scale_x_continuous(trans="pseudo_log", breaks=c(0, 1, 10, 100, 1000))
+
+fig_bound_real_approx = bound_real |> 
+  mutate(dataset_regressor = fct_rev(dataset_regressor)) |> 
+  plot_bound_real(x_var="median_approx_rel_med", x_low_var="q_low_approx_rel_med", x_high_var="q_high_approx_rel_med") + 
+  xlab("(U - e) / median(e)") + 
+  scale_x_continuous(trans="pseudo_log", breaks=c(0, 1, 10, 100, 1000))
+
+fig_bound_real_exact
+fig_bound_real_approx
+fig_bound_real_pract
+
+if (save) {
+  ggsave(file.path(dir_figures, "real_bound_exact.pdf"), fig_bound_real_exact, height=4, width=6)
+  ggsave(file.path(dir_figures, "real_bound_approx.pdf"), fig_bound_real_approx, height=4, width=6)
+  ggsave(file.path(dir_figures, "real_bound_pract.pdf"), fig_bound_real_pract, height=4, width=6)
+}
+```
+
+## Table (drift)
+
+```{r rows.print=100}
+make_drift_table <- function(df, auc_var="auc_te", auc_dist_var="auc_dist_te") {
+  df |>
+    mutate(
+      dataset = gsub("_", "\\_", dataset, fixed = TRUE),
+      dataset = sprintf("\\textsc{%s}", dataset),
+      regressor = sprintf("\\textsc{%s}", regressor),
+      Dataset = ifelse(!is.na(lag(dataset)) & dataset == lag(dataset), "", dataset),
+      Bound = get(auc_var),
+      Distance = get(auc_dist_var)
+    ) |>
+    mutate(
+      better_metric = case_when(
+        Bound > Distance ~ "bound",
+        Bound < Distance ~ "distance",
+        Bound == Distance ~ "none"
+      ),
+      Bound = ifelse(better_metric == "bound", sprintf("\\textbf{%.2f}", Bound), sprintf("%.2f", Bound)),
+      Distance = ifelse(better_metric == "distance", sprintf("\\textbf{%.2f}", Distance), sprintf("%.2f", Distance))
+    ) |>
+    select(Dataset, regressor, Bound, Distance) |>
+    rename_latex()
+}
+
+tbl_drift_exact = drift |> 
+  make_drift_table(auc_var="auc_exact_te")
+tbl_drift_approx = drift |> 
+  make_drift_table(auc_var="auc_approx_te")
+tbl_drift_practical = drift |> 
+  make_drift_table(auc_var="auc_practical_te")
+
+tbl_drift_exact
+tbl_drift_approx
+tbl_drift_practical
+
+if (save) {
+    save_latex(tbl_drift_exact, file.path(dir_tables, "tbl_drift_exact.tex"), digits = 2)
+    save_latex(tbl_drift_approx, file.path(dir_tables, "tbl_drift_approx.tex"), digits = 2)
+    save_latex(tbl_drift_practical, file.path(dir_tables, "tbl_drift_practical.tex"), digits = 2)
+}
+```
+
+## Figures (Appendix)
+
+```{r}
+make_scatter_figs = function(df, y_var = "bound", y_label = "Bound", min_sq_error = 1e-6) {
+  figs = vector("list", nrow(df))
+  for (i in 1:nrow(df)) {
+    title = paste(df$dataset[i], df$regressor[i], sep="\n")
+    name = paste(df$dataset[i], df$regressor[i], sep="_")
+    figs[[i]] = df[i,] |> 
+      unnest(c(all_of(y_var), sq_error, is_trvate)) |> 
+      filter(sq_error > min_sq_error) |> 
+      plot_scatter_real(
+        x_var = "sq_error",
+        y_var = y_var,
+        color_var = "is_trvate",
+        title = title,
+        y_label = y_label
+      ) + 
+      geom_vline(xintercept=df$thr_e[i], linetype=2, linewidth=0.3)  + 
+      scale_color_manual(values=c("tr"="black", "va"="darkblue", "te"="darkred")) + 
+      scale_shape_manual(values=c("tr"="+", "va"="o", "te"="x"))
+    figs[[i]]$name = name
+  }
+  figs
+}
+
+figs = drift |> 
+  make_scatter_figs(y_var = "bound_approx")
+
+for (i in 1:length(figs)) {
+  print(figs[[i]])
+  if (save) {
+    ggsave(file.path(dir_figures, paste0("error_", figs[[i]]$name, ".png")),
+           figs[[i]],
+           height = 3,
+           width = 3, 
+           bg = "white")
+  }
+}
+```
+
+Practical bound vs errors: 
+
+```{r}
+figs = drift |> 
+  make_scatter_figs(y_var = "bound_practical")
+
+for (i in 1:length(figs)) {
+  print(figs[[i]])
+  if (save) {
+    ggsave(file.path(dir_figures, paste0("error_practical_", figs[[i]]$name, ".png")),
+           figs[[i]],
+           height = 3,
+           width = 3, 
+           bg = "white")
+  }
+}
+```
+
+Euclidean distances vs errors: 
+
+```{r}
+figs_dist = drift |> 
+  make_scatter_figs(y_var="dist", y_label = "Distance")
+
+for (i in 1:length(figs_dist)) {
+  print(figs_dist[[i]])
+  if (save) {
+    ggsave(file.path(dir_figures, paste0("error_dist_", figs_dist[[i]]$name, ".png")),
+           figs_dist[[i]],
+           height = 3,
+           width = 3, 
+           bg = "white")
+  }
+}
+```
