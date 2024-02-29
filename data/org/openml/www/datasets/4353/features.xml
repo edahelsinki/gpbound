@@ -1,0 +1,83 @@
+<oml:data_features xmlns:oml="http://openml.org/openml">
+    <oml:feature>
+    <oml:index>0</oml:index>
+    <oml:name>Cement (component 1)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>1</oml:index>
+    <oml:name>Blast Furnace Slag (component 2)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>2</oml:index>
+    <oml:name>Fly Ash (component 3)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>3</oml:index>
+    <oml:name>Water  (component 4)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>4</oml:index>
+    <oml:name>Superplasticizer (component 5)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>5</oml:index>
+    <oml:name>Coarse Aggregate  (component 6)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>6</oml:index>
+    <oml:name>Fine Aggregate (component 7)(kg in a m^3 mixture)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>7</oml:index>
+    <oml:name>Age (day)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+    <oml:feature>
+    <oml:index>8</oml:index>
+    <oml:name>Concrete compressive strength(MPa. megapascals)</oml:name>
+    <oml:data_type>numeric</oml:data_type>
+        <oml:is_target>false</oml:is_target>
+    <oml:is_ignore>false</oml:is_ignore>
+    <oml:is_row_identifier>false</oml:is_row_identifier>
+    <oml:number_of_missing_values>0</oml:number_of_missing_values>
+  </oml:feature>
+  </oml:data_features>

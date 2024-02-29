@@ -1,0 +1,29 @@
+<oml:data_set_description xmlns:oml="http://openml.org/openml">
+  <oml:id>43174</oml:id>
+  <oml:name>superconduct</oml:name>
+  <oml:version>1</oml:version>
+  <oml:description>**Dataset Description**
+
+The data contains information on 21263 superconductors. The first 81 columns contain extracted
+features and the 82nd column contains the critical temperature which is used as the target
+variable. The original data from which the features were extracted comes from
+http://supercon.nims.go.jp/index_en.html, which is public.
+
+**Related studies**
+
+https://www.frontiersin.org/articles/10.3389/fmats.2021.714752/full
+
+**Source**
+
+[UCI](https://archive.ics.uci.edu/ml/datasets/superconductivty+data) (2018)
+
+**Citation**
+
+Please cite [UCI](https://archive.ics.uci.edu/ml/citation_policy.html)</oml:description>
+  <oml:description_version>1</oml:description_version>
+  <oml:format>arff</oml:format>
+        <oml:upload_date>2022-02-10T13:22:07</oml:upload_date>
+    <oml:licence>CC BY 4.0</oml:licence>  <oml:url>https://api.openml.org/data/v1/download/22101847/superconduct.arff</oml:url>
+  <oml:parquet_url>https://openml1.win.tue.nl/datasets/0004/43174/dataset_43174.pq</oml:parquet_url>  <oml:file_id>22101847</oml:file_id>  <oml:default_target_attribute>critical_temp</oml:default_target_attribute>          <oml:tag>Machine Learning</oml:tag><oml:tag>Mathematics</oml:tag>  <oml:visibility>public</oml:visibility>      <oml:minio_url>https://openml1.win.tue.nl/datasets/0004/43174/dataset_43174.pq</oml:minio_url>  <oml:status>active</oml:status>
+  <oml:processing_date>2022-02-10 13:23:09</oml:processing_date>      <oml:md5_checksum>afa2ddc74fa0697cd557db9776df6508</oml:md5_checksum>
+</oml:data_set_description>

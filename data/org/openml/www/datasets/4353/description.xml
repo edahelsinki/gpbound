@@ -1,0 +1,12 @@
+<oml:data_set_description xmlns:oml="http://openml.org/openml">
+  <oml:id>4353</oml:id>
+  <oml:name>Concrete_Data</oml:name>
+  <oml:version>1</oml:version>
+  <oml:description>Concrete is the most important material in civil engineering. The concrete compressive strength is a highly nonlinear function of age and ingredients. These ingredients include cement, blast furnace slag, fly ash, water, superplasticizer, coarse aggregate, and fine aggregate.</oml:description>
+  <oml:description_version>1</oml:description_version>
+  <oml:format>ARFF</oml:format>
+        <oml:upload_date>2016-01-22T10:54:42</oml:upload_date>
+    <oml:licence>Public</oml:licence>  <oml:url>https://api.openml.org/data/v1/download/1762521/Concrete_Data.arff</oml:url>
+  <oml:parquet_url>https://openml1.win.tue.nl/datasets/0000/4353/dataset_4353.pq</oml:parquet_url>  <oml:file_id>1762521</oml:file_id>            <oml:tag>Demographics</oml:tag>  <oml:visibility>public</oml:visibility>      <oml:minio_url>https://openml1.win.tue.nl/datasets/0000/4353/dataset_4353.pq</oml:minio_url>  <oml:status>active</oml:status>
+  <oml:processing_date>2018-10-30 00:43:44</oml:processing_date>      <oml:md5_checksum>5fab3726c72696adb94c30308841452a</oml:md5_checksum>
+</oml:data_set_description>

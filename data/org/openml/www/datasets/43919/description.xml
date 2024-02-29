@@ -1,0 +1,56 @@
+<oml:data_set_description xmlns:oml="http://openml.org/openml">
+  <oml:id>43919</oml:id>
+  <oml:name>airfoil_self_noise</oml:name>
+  <oml:version>1</oml:version>
+  <oml:description>**Citation**
+
+Please refer to UCI's [citation policy](https://archive.ics.uci.edu/ml/citation_policy.html).
+
+**Source**
+
+Donor: Dr Roberto Lopez robertolopez '@' intelnics.com Intelnics
+
+Creators:
+Thomas F. Brooks, D. Stuart Pope and Michael A. Marcolini NASA
+
+Note that the names of the columns have been altered to be more descriptive.
+
+**Data Description**
+
+The NASA data set comprises different size NACA 0012 airfoils at various wind tunnel speeds and angles of attack. The span of the airfoil and the observer position were the same in all of the experiments.
+
+**Attribute description**
+
+This problem has the following inputs:
+
+* frequency - Frequency, in Hertzs.
+* angle -  Angle of attack, in degrees.
+* length - Chord length, in meters.
+* velocity - Free-stream velocity, in meters per second.
+* thickness - Suction side displacement thickness, in meters.
+
+The only output is:
+
+* pressure - Scaled sound pressure level, in decibels.
+
+Relevant Papers:
+
+T.F. Brooks, D.S. Pope, and A.M. Marcolini.
+Airfoil self-noise and prediction.
+Technical report, NASA RP-1218, July 1989.
+
+K. Lau.
+A neural networks approach for aerofoil noise prediction.
+Master thesis, Department of Aeronautics.
+Imperial College of Science, Technology and Medicine (London, United Kingdom), 2006.
+
+R. Lopez.
+Neural Networks for Variational Problems in Engineering.
+PhD Thesis, Technical University of Catalonia, 2008.</oml:description>
+  <oml:description_version>1</oml:description_version>
+  <oml:format>arff</oml:format>
+        <oml:upload_date>2022-06-03T15:32:16</oml:upload_date>
+    <oml:licence>CC BY 4.0</oml:licence>  <oml:url>https://api.openml.org/data/v1/download/22102967/airfoil_self_noise.arff</oml:url>
+  <oml:parquet_url>http://openml1.win.tue.nl/dataset43919/dataset_43919.pq</oml:parquet_url>  <oml:file_id>22102967</oml:file_id>  <oml:default_target_attribute>pressure</oml:default_target_attribute>            <oml:visibility>public</oml:visibility>      <oml:minio_url>http://openml1.win.tue.nl/dataset43919/dataset_43919.pq</oml:minio_url>  <oml:status>active</oml:status>
+  <oml:processing_date>2022-06-03 15:33:02</oml:processing_date>      <oml:md5_checksum>79f7daecfdeb6457ba37fd8982966048</oml:md5_checksum>
+</oml:data_set_description>
